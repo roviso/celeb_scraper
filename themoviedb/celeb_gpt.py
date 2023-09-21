@@ -7,11 +7,14 @@ from imdb import IMDB
 from parser import ImdbParser
 
 from mediawikiapi import MediaWikiAPI
-
+import openai
 
 imdb = IMDB()
 mediawikiapi = MediaWikiAPI()
 
+API_KEY: str = "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"
+
+openai.api_key = API_KEY
 
 # Define your API keys and URLs here
 movieAPI = 'fec8616772d5432aacc95609416a2129'
@@ -129,17 +132,113 @@ def extract_celeb_info(link, celeb_name):
 
     return info
 
+
+def bio_summary(data):
+
+    system_message = {
+        "role": "system",
+        # "content": prompts['system_message_content']
+        "content": f'''You are a powerful ai tasked to write long blog on the biography of a celebrity with the data given to you. Use the Template below to create a blog about the individual:
+        Keyword Bio: Early Life, Relationship, Career & Net Worth
+Introduction
+***  FILL IN THE CELEBRITY INTRODUCTION ***
+
+Keyword | Quick Facts
+*** Table Showing following key and values
+1) Real Name/Full Name 
+2) Nick Name
+3) Gender
+4) Known as
+5) Date of Birth
+6) Birthplace
+7) Father
+8) Mother
+9) Siblings
+10) Age
+11) Height
+12) Weight
+13) Ethnicity
+14) Nationality
+15) Religion
+16) Education
+17) Profession
+18) Monthly Income
+19) Net Worth
+20) Marital Status
+21) Wife/Husband or (Bf/gf)
+22) Marriage Date (if married)
+23) Children
+      
+        
+Keyword | Early Life, Family (Siblings)
+*** WRITE ABOUT THE CELEBRITY Early Life, Family (Siblings) ***
+
+Keywords | Education & Early Career
+
+Keywords |Ethnicity, Nationality & Religion
+
+Keywords | Quotes.
+
+Keyword | Career
+
+Keyword | Dating History(Boyfriend/Girlfriend?)
+
+Keywords | Podcast
+
+Keywords |Trophies and Honours:
+
+Keyword | Stats
+
+Keyword | Age, Height, and Weight (Body Measurements)
+
+Keyword | Salary and Net Worth
+
+Keyword | Income Source, Brand Promotion & Collaborations
+
+Keyword | Net worth in Different Currencies, including Bitcoin
+
+Keywords | Charity works
+
+Keyword | Cars, Houses, Assets
+
+
+Keyword | Social Media Presence
+
+Conclusion
+  '''
+    }
+    
+    user_message = {
+        "role": "user", 
+        "content": f'here is the data of celebrity i want to summarize: \n\n{data}'
+    }
+
+    messages = [
+        system_message,
+        user_message
+    ]
+
+    print(messages)
+
+    # MODEL = "gpt-3.5-turbo-0301"
+    MODEL = "gpt-4"
+    for i in range(1,4):
+        # try:
+        response = openai.ChatCompletion.create(
+            model=MODEL,
+            messages=messages,
+        )
+        print("openai respones: ", response)
+        en_result = response.choices[0].message["content"]
+        return en_result
+    
+    
+
 def main():
     celeb_name = input("Enter the celebrity name: ")
     link = get_celeb_networth_link(celeb_name)
     if link:
         info = extract_celeb_info(link, celeb_name)
-        if info:
-            with open(f"{celeb_name.replace(' ', '_')}.json", 'w') as f:
-                json.dump(info, f, indent=4)
-            print(f"Information for {celeb_name} saved to {celeb_name.replace(' ', '_')}.json")
-        else:
-            print(f"No information found for {celeb_name}")
     else:
         print(f"No link found for {celeb_name}")
     
@@ -161,6 +260,11 @@ def main():
         with open(f"celeb_output/{celeb_name.replace(' ', '_')}.json", 'w') as f:
             json.dump(info, f, indent=4)
         print(f"Information for {celeb_name} saved to celeb_output/{celeb_name.replace(' ', '_')}.json")
+        biosum = bio_summary(info)
+        # Open a file in write mode ('w')
+        with open(f"celeb_output/generated_{celeb_name.replace(' ', '_')}.txt", "w") as f:
+            # Write the string to the file
+            f.write(biosum)
     else:
         print(f"No information found for {celeb_name}")
         
